@@ -24,7 +24,9 @@ public class FlywheelTuner extends OpMode {
     @Override
     public void init() {
         // Initialize flywheel motor
-        flywheelMotor = hardwareMap.get(DcMotorEx.class, "motor");
+        // WARNING! set the device name (currently set to "flywheel") to what
+        // is set in your driver hub.--------------------------------VVVVVVVV
+        flywheelMotor = hardwareMap.get(DcMotorEx.class, "flywheel");
         // Set flywheel run mode to use encoder (takes velocity as input instead of power)
         flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         // Reverses flywheel direction
@@ -73,6 +75,7 @@ public class FlywheelTuner extends OpMode {
         if (gamepad1.dpadDownWasPressed()) {
             P -= stepSizes[stepIndex];
         }
+
         // Set target velocity
 
         // Set new PIDFCoeff
@@ -84,7 +87,6 @@ public class FlywheelTuner extends OpMode {
         double error = curTargetVelocity - curVelocity;
 
         // Update telemetry
-
         telemetry.addData("Target Velocity: ", curTargetVelocity);
         telemetry.addData("Current Velocity", "%.2f", curVelocity);
         telemetry.addData("Error", " %.2f", error);

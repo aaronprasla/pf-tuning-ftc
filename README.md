@@ -5,6 +5,128 @@ This repository contains the public FTC SDK for the BIOBUZZ (2026-2027) competit
 ## Welcome!
 This GitHub repository contains the source code that is used to build an Android app to control a *FIRST* Tech Challenge competition robot.  To use this SDK, download/clone the entire project to your local computer.
 
+## Instructions
+
+Inside TeamCode/src/main/java/org/firstinspires/ftc/teamcode, there is a file called FlywheelTuner.java. This is the main project file, so you don't need to change anything else.
+
+You can use OnBot Java (beginner), Android Studio (intermediate), or an IDE of your choice (advanced).
+
+If you're using OnBot Java, copy the contents of FlywheelTuner.java (or download the file) into a new TeleOp OpMode.
+
+If you're using Android Studio or another IDE, clone this repository (git is required): git clone https://github.com/aaronprasla/pf-tuning-ftc.git or with ssh git@github.com:aaronprasla/pf-tuning-ftc.git
+
+You can also download the repository as a ZIP file and extract it.
+
+After you've set everything up, follow these steps:
+
+### 1. Set the flywheelMotor hardware map
+
+In the init() method, find this line:
+
+```java
+flywheelMotor = hardwareMap.get(DcMotorEx.class, "flywheel");
+```
+
+Change "flywheel" to match the name you assigned to your flywheel motor in the Driver Hub configuration. Make sure the name matches exactly.
+
+### 2. Prepare your robot
+
+Before running the tuner, put your robot on a stable surface or secure it on a suitable stand. Point the launcher away from people and equipment, and keep your hands and other objects clear of the flywheel.
+
+Make sure the flywheel can spin freely and smoothly. Check that the motor direction is correct, and change it in the code if needed.
+
+### 3. Initialize and start the OpMode
+
+Connect your Driver Station to the robot and select FlywheelTuner from the TeleOp list.
+
+Press INIT and check that the telemetry displays Init Complete. Then press START to begin tuning.
+
+Important: The current code does not actually command the flywheel to spin. Before tuning, add the following line inside loop(), after setting the PIDF coefficients:
+
+
+```java
+flywheelMotor.setVelocity(curTargetVelocity);
+```
+
+
+Without this line, the flywheel will not attempt to reach the displayed target velocity.
+
+### 4. Understand the controller controls
+
+All controls use Gamepad 1.
+
+Button	Function
+Y (Triangle)	Switch between the high target velocity (1150) and low target velocity (1000).
+B (Circle)	Cycle through the available adjustment step sizes.
+D-pad Left	Increase F.
+D-pad Right	Decrease F.
+D-pad Up	Increase P.
+D-pad Down	Decrease P.
+
+The tuner starts with P = 0, F = 0, and a target velocity of 1150.
+
+### 5. Choose an adjustment step size
+
+Every time you press B (Circle), the tuner moves to the next step size. Once it reaches the smallest step, it cycles back to the largest.
+
+The initial step size is 1.0.
+
+Step size	Use
+1.0	Make larger adjustments.
+0.1	Narrow down the range.
+0.01	Fine-tune your values.
+0.001	Make very small adjustments.
+0.0001	Make extremely small adjustments.
+10.0	Make very large adjustments.
+
+Start with larger steps to find a reasonable range, then switch to smaller steps as you get closer to a good value.
+
+### 6. Tune F first
+
+The F coefficient helps the motor maintain its target velocity.
+
+Use the D-pad Left and Right buttons to adjust F. Watch the current velocity on the Driver Station and see how close it gets to the target.
+
+Make small changes once you find a promising value. Give the flywheel time to settle after each adjustment so you can see the effect.
+
+### 7. Tune P next
+
+The P coefficient controls how strongly the motor responds to the difference between its target and current velocity.
+
+Use the D-pad Up and Down buttons to adjust P. Increase it gradually and watch how the flywheel responds.
+
+You're looking for a flywheel that reaches its target reasonably quickly without excessive oscillation or unstable behavior. If the speed becomes erratic, stop and reassess your settings.
+
+### 8. Read the telemetry
+
+The Driver Station displays several values to help you tune the flywheel.
+
+Telemetry	What it means
+Target Velocity	The speed the flywheel is trying to reach.
+Current Velocity	The speed the flywheel is currently running at.
+Error	The difference between the target and current velocities.
+Tuning P	Your current P coefficient.
+Tuning F	Your current F coefficient.
+Step Size	How much each button press changes P or F.
+
+For example, if the target velocity is 1150 and the current velocity is 1080, the error is 70. This means the flywheel is running below its target.
+
+Ideally, the error should get close to zero once the flywheel settles.
+
+### 9. Test both target velocities
+
+Once you're happy with your adjustments, press Y (Triangle) to switch between the high and low target velocities.
+
+Check that the flywheel settles near both targets. Make any additional adjustments needed, and repeat the test to make sure the results are consistent.
+
+### 10. Save your final values
+
+The tuner does not save your P and F values automatically. Before stopping the OpMode, write down your final values and the results you observed at both target velocities.
+
+Transfer those values into your competition code and test them again under normal shooting conditions.
+
+Remember that the best values depend on your motor, gearing, flywheel, battery voltage, and launcher setup. Take your time and make one adjustment at a time so you can tell what actually improves performance.
+
 ## Requirements
 To use this Android Studio project, you will need Android Studio Narwhal 3 Feature Drop or later.
 
