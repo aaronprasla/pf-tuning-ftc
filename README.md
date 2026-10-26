@@ -13,7 +13,7 @@ You can use OnBot Java (beginner), Android Studio (intermediate), or an IDE of y
 
 If you're using OnBot Java, copy the contents of FlywheelTuner.java (or download the file) into a new TeleOp OpMode.
 
-If you're using Android Studio or another IDE, clone this repository (git is required): git clone https://github.com/aaronprasla/pf-tuning-ftc.git or with ssh git@github.com:aaronprasla/pf-tuning-ftc.git
+If you're using Android Studio or another IDE, clone this repository (git is required): ```git clone https://github.com/aaronprasla/pf-tuning-ftc.git``` or with ssh ```git@github.com:aaronprasla/pf-tuning-ftc.git```
 
 You can also download the repository as a ZIP file and extract it.
 
