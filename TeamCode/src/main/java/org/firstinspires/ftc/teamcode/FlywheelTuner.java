@@ -7,13 +7,11 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
-@TeleOp
+@TeleOp(name = "Flywheel Tuner")
 public class FlywheelTuner extends OpMode {
     public DcMotorEx flywheelMotor;
 
-    public double highVelocity = 1150;
-    public double lowVelocity = 1000;
-    double curTargetVelocity = highVelocity;
+    double targetVelocity = 0;
 
     double F = 0;
     double P = 0;
@@ -30,7 +28,7 @@ public class FlywheelTuner extends OpMode {
         // Set flywheel run mode to use encoder (takes velocity as input instead of power)
         flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         // Reverses flywheel direction
-        flywheelMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        // flywheelMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // Creates PIDFCoefficients object using P & F variables. I & D remain constant
         PIDFCoefficients pidfCoefficients = new PIDFCoefficients(P, 0, 0, F);
@@ -44,14 +42,11 @@ public class FlywheelTuner extends OpMode {
     @Override
     public void loop() {
         // Get gamepad commands
-
-        // Switches between low & high velocity if triangle (y) is pressed.
+        if (gamepad1.xWasPressed()) {
+            targetVelocity = 0;
+        }
         if (gamepad1.yWasPressed()) {
-            if (curTargetVelocity == highVelocity) {
-                curTargetVelocity = lowVelocity;
-            } else {
-                curTargetVelocity = highVelocity;
-            }
+            targetVelocity = 1160;
         }
         // Increments step index by one every time circle (b) is pressed.
         // If it goes over, it goes back to the beginning
@@ -84,10 +79,11 @@ public class FlywheelTuner extends OpMode {
 
         // Set velocity
         double curVelocity = flywheelMotor.getVelocity();
-        double error = curTargetVelocity - curVelocity;
+        double error = targetVelocity - curVelocity;
+        flywheelMotor.setVelocity(targetVelocity);
 
         // Update telemetry
-        telemetry.addData("Target Velocity: ", curTargetVelocity);
+        telemetry.addData("Target Velocity: ", targetVelocity);
         telemetry.addData("Current Velocity", "%.2f", curVelocity);
         telemetry.addData("Error", " %.2f", error);
         telemetry.addLine("--------------------------------");
