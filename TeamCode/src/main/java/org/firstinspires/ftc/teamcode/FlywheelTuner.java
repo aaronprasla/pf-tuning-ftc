@@ -4,20 +4,29 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 @TeleOp(name = "Flywheel Tuner")
 public class FlywheelTuner extends OpMode {
+
+    // Access values from http://192.168.43.1:8080/dash
+    @Config
+    public static class Gains {
+        public static double kP = 0.0;
+        //public static double kI = 0.0;
+        //public static double kD = 0.0;
+        public static double kF = 0.0;
+    }
     public DcMotorEx flywheelMotor;
 
+    public VoltageSensor voltageSensor;
     double targetVelocity = 0;
 
-    double F = 0;
-    double P = 0;
-
-    double[] stepSizes = {10.0, 1.0, 0.1, 0.01, 0.001, 0.0001};
-    int stepIndex = 1;
+    //double lastError = 0;
+    //double integralSum = 0;
 
     @Override
     public void init() {
@@ -25,71 +34,73 @@ public class FlywheelTuner extends OpMode {
         // WARNING! set the device name (currently set to "flywheel") to what
         // is set in your driver hub.--------------------------------VVVVVVVV
         flywheelMotor = hardwareMap.get(DcMotorEx.class, "flywheel");
-        // Set flywheel run mode to use encoder (takes velocity as input instead of power)
-        flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // Set flywheel run mode to not use encoder (takes power as input instead of velocity)
+        flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         // Reverses flywheel direction
         // flywheelMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        voltageSensor = hardwareMap.voltageSensor.iterator().next();
 
-        // Creates PIDFCoefficients object using P & F variables. I & D remain constant
-        PIDFCoefficients pidfCoefficients = new PIDFCoefficients(P, 0, 0, F);
-        // Sets PIDF Coefficients for the motor
-        flywheelMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfCoefficients);
-        // Lets user know that initialization is complete
-        telemetry.addLine("Init Complete");
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
     }
 
     @Override
     public void loop() {
         // Get gamepad commands
-        if (gamepad1.xWasPressed()) {
-            targetVelocity = 0;
-        }
-        if (gamepad1.yWasPressed()) {
-            targetVelocity = 1160;
-        }
-        // Increments step index by one every time circle (b) is pressed.
-        // If it goes over, it goes back to the beginning
-        if (gamepad1.bWasPressed()) {
-            stepIndex = (stepIndex + 1) % stepSizes.length;
-        }
+        // Turn off flywheel
+        if (gamepad1.xWasPressed()) targetVelocity = 0;
+        // Turn on flywheel
+        if (gamepad1.yWasPressed()) targetVelocity = 1160;
 
-        // Increments F by stepSizes by stepIndex
-        if (gamepad1.dpadLeftWasPressed()) {
-            F += stepSizes[stepIndex];
-        }
+        // Read velocity, voltage, and get error
+        double batteryVoltage = voltageSensor.getVoltage();
+        double currentVelocity = flywheelMotor.getVelocity();
+        double powerFraction = getPowerFraction(currentVelocity, batteryVoltage);
+        // Makes sure value doesn't go over or below -1.0 & 1.0
+        
 
-        if (gamepad1.dpadRightWasPressed()) {
-            F -= stepSizes[stepIndex];
-        }
-
-        if (gamepad1.dpadUpWasPressed()) {
-            P += stepSizes[stepIndex];
-        }
-
-        if (gamepad1.dpadDownWasPressed()) {
-            P -= stepSizes[stepIndex];
-        }
-
-        // Set target velocity
-
-        // Set new PIDFCoeff
-        PIDFCoefficients pidfCoefficients = new PIDFCoefficients(P, 0, 0, F);
-        flywheelMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfCoefficients);
-
-        // Set velocity
-        double curVelocity = flywheelMotor.getVelocity();
-        double error = targetVelocity - curVelocity;
-        flywheelMotor.setVelocity(targetVelocity);
+        // Sets motor power
+        flywheelMotor.setPower(powerFraction);
 
         // Update telemetry
-        telemetry.addData("Target Velocity: ", targetVelocity);
-        telemetry.addData("Current Velocity", "%.2f", curVelocity);
-        telemetry.addData("Error", " %.2f", error);
-        telemetry.addLine("--------------------------------");
-        telemetry.addData("Tuning P", "%.4f (D-Pad U/D)", P);
-        telemetry.addData("Tuning F", "%.4f (D-Pad L/R)", F);
-        telemetry.addData("Step Size", "%.4f (Circle)", stepSizes[stepIndex]);
-        telemetry.addLine("Switch between high & low velocity (Triangle)");
+        // Voltage warning if voltage is < 11.5V
+        if (batteryVoltage < 11.5) telemetry.addLine("WARNING! BATTERY VOLTAGE LOW!");
+        
+        telemetry.addData("Current velocity %.1f", currentVelocity);
+        telemetry.addData("Target velocity", targetVelocity);
+        telemetry.addData("Error", targetVelocity - currentVelocity);
+        telemetry.addLine();
+        telemetry.addData("P = %.5f", Gains.kP);
+        //telemetry.addData("I = %.5f", Gains.kI);
+        //telemetry.addData("D = %.5f", Gains.kD);
+        telemetry.addData("F = %.5f", Gains.kF);
+        telemetry.update();
+    }
+
+    private double getPowerFraction(double currentVelocity, double batteryVoltage) {
+        double error = targetVelocity - currentVelocity;
+
+        // PIDF Control Loop
+        // Proportional (kP) reacts to current error
+        double desiredVoltage = getDesiredVoltage(error);
+        // Power fraction to pass to the motor
+        if (targetVelocity == 0) return 0;
+        return Math.max(-1.0, Math.min(1.0, desiredVoltage / batteryVoltage));
+
+    }
+
+    private double getDesiredVoltage(double error) {
+        double proportionalVoltage = Gains.kP * error;
+        // Integral (kI) corrects accumulated error
+        //integralSum += error;
+        //double integralVoltage = Gains.kI * integralSum;
+        // Derivative (kD)
+        //double derivativeVoltage = Gains.kD * (error - lastError);
+        //lastError = error;
+        // Feedforward voltage (kF) predicts voltage for target speed
+        double feedforwardVoltage = Gains.kF * targetVelocity;
+
+        // Desired voltage
+        return feedforwardVoltage + proportionalVoltage;
     }
 }
